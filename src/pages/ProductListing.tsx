@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Filter, Search, Grid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,84 +13,350 @@ import ProductCard from '@/components/ProductCard';
 import type { Product } from '@/lib/api';
 
 const ProductListing = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
   const [priceRange, setPriceRange] = useState([0, 1000]);
   const [sortBy, setSortBy] = useState('featured');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [cartItemCount, setCartItemCount] = useState(0);
 
-  // Mock products data
+  // Mock products data - Complete catalog for all categories
   useEffect(() => {
     const mockProducts: Product[] = [
+      // Electronics
       {
         id: '1',
         name: 'Wireless Headphones Pro',
         description: 'Premium noise-canceling headphones with 30-hour battery life',
         price: 299.99,
         image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop',
-        category: 'Electronics',
+        category: 'electronics',
         stock: 15,
         featured: true,
       },
       {
         id: '2',
-        name: 'Eco-Friendly Water Bottle',
-        description: 'Sustainable stainless steel bottle with temperature control',
-        price: 45.99,
-        image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&h=500&fit=crop',
-        category: 'Lifestyle',
-        stock: 32,
-        featured: false,
-      },
-      {
-        id: '3',
         name: 'Smart Fitness Watch',
         description: 'Advanced health tracking with GPS and heart rate monitor',
         price: 199.99,
         image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&h=500&fit=crop',
-        category: 'Electronics',
+        category: 'electronics',
         stock: 8,
         featured: true,
       },
       {
-        id: '4',
-        name: 'Organic Cotton Backpack',
-        description: 'Stylish and sustainable backpack for everyday adventures',
+        id: '3',
+        name: 'Bluetooth Speaker',
+        description: 'Portable waterproof speaker with crystal clear sound',
         price: 89.99,
-        image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&h=500&fit=crop',
-        category: 'Fashion',
-        stock: 20,
+        image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=500&h=500&fit=crop',
+        category: 'electronics',
+        stock: 22,
         featured: false,
       },
       {
+        id: '4',
+        name: 'Smartphone Pro Max',
+        description: 'Latest flagship smartphone with advanced camera system',
+        price: 999.99,
+        image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=500&h=500&fit=crop',
+        category: 'electronics',
+        stock: 5,
+        featured: true,
+      },
+      {
         id: '5',
-        name: 'Bamboo Phone Case',
-        description: 'Eco-friendly phone case made from sustainable bamboo',
+        name: 'Laptop Gaming Elite',
+        description: 'High-performance gaming laptop with RTX graphics',
+        price: 1599.99,
+        image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&h=500&fit=crop',
+        category: 'electronics',
+        stock: 3,
+        featured: false,
+      },
+
+      // Fashion
+      {
+        id: '6',
+        name: 'Designer Leather Jacket',
+        description: 'Premium leather jacket with modern cut and classic style',
+        price: 299.99,
+        image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&h=500&fit=crop',
+        category: 'fashion',
+        stock: 12,
+        featured: true,
+      },
+      {
+        id: '7',
+        name: 'Casual Cotton T-Shirt',
+        description: 'Comfortable organic cotton t-shirt in multiple colors',
         price: 24.99,
-        image: 'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=500&h=500&fit=crop',
-        category: 'Accessories',
+        image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500&fit=crop',
+        category: 'fashion',
         stock: 45,
         featured: false,
       },
       {
-        id: '6',
+        id: '8',
+        name: 'Running Sneakers',
+        description: 'Lightweight performance sneakers for active lifestyle',
+        price: 129.99,
+        image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=500&h=500&fit=crop',
+        category: 'fashion',
+        stock: 18,
+        featured: true,
+      },
+      {
+        id: '9',
+        name: 'Denim Jeans Classic',
+        description: 'Timeless denim jeans with perfect fit and durability',
+        price: 79.99,
+        image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&h=500&fit=crop',
+        category: 'fashion',
+        stock: 28,
+        featured: false,
+      },
+
+      // Home & Living
+      {
+        id: '10',
         name: 'Minimalist Desk Lamp',
         description: 'Modern LED desk lamp with adjustable brightness and color',
         price: 79.99,
         image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&h=500&fit=crop',
-        category: 'Home',
+        category: 'home',
         stock: 12,
         featured: true,
+      },
+      {
+        id: '11',
+        name: 'Cozy Throw Blanket',
+        description: 'Ultra-soft blanket perfect for relaxing evenings',
+        price: 49.99,
+        image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&h=500&fit=crop',
+        category: 'home',
+        stock: 25,
+        featured: false,
+      },
+      {
+        id: '12',
+        name: 'Plant Pot Set',
+        description: 'Ceramic plant pots in various sizes for indoor gardening',
+        price: 39.99,
+        image: 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=500&h=500&fit=crop',
+        category: 'home',
+        stock: 30,
+        featured: true,
+      },
+      {
+        id: '13',
+        name: 'Coffee Table Modern',
+        description: 'Sleek wooden coffee table with storage compartment',
+        price: 299.99,
+        image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&h=500&fit=crop',
+        category: 'home',
+        stock: 8,
+        featured: false,
+      },
+
+      // Lifestyle
+      {
+        id: '14',
+        name: 'Eco-Friendly Water Bottle',
+        description: 'Sustainable stainless steel bottle with temperature control',
+        price: 45.99,
+        image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&h=500&fit=crop',
+        category: 'lifestyle',
+        stock: 32,
+        featured: true,
+      },
+      {
+        id: '15',
+        name: 'Yoga Mat Premium',
+        description: 'Non-slip yoga mat made from natural rubber',
+        price: 69.99,
+        image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=500&h=500&fit=crop',
+        category: 'lifestyle',
+        stock: 20,
+        featured: false,
+      },
+      {
+        id: '16',
+        name: 'Essential Oils Set',
+        description: 'Collection of pure essential oils for aromatherapy',
+        price: 89.99,
+        image: 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=500&h=500&fit=crop',
+        category: 'lifestyle',
+        stock: 15,
+        featured: true,
+      },
+
+      // Accessories
+      {
+        id: '17',
+        name: 'Bamboo Phone Case',
+        description: 'Eco-friendly phone case made from sustainable bamboo',
+        price: 24.99,
+        image: 'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=500&h=500&fit=crop',
+        category: 'accessories',
+        stock: 45,
+        featured: false,
+      },
+      {
+        id: '18',
+        name: 'Leather Wallet',
+        description: 'Handcrafted leather wallet with RFID protection',
+        price: 59.99,
+        image: 'https://images.unsplash.com/photo-1627123391137-2d81ebb94edc?w=500&h=500&fit=crop',
+        category: 'accessories',
+        stock: 25,
+        featured: true,
+      },
+      {
+        id: '19',
+        name: 'Sunglasses Classic',
+        description: 'UV protection sunglasses with polarized lenses',
+        price: 149.99,
+        image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=500&h=500&fit=crop',
+        category: 'accessories',
+        stock: 18,
+        featured: false,
+      },
+
+      // Sports & Outdoor
+      {
+        id: '20',
+        name: 'Camping Backpack',
+        description: 'Durable hiking backpack with multiple compartments',
+        price: 179.99,
+        image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&h=500&fit=crop',
+        category: 'sports',
+        stock: 12,
+        featured: true,
+      },
+      {
+        id: '21',
+        name: 'Tennis Racket Pro',
+        description: 'Professional tennis racket for serious players',
+        price: 249.99,
+        image: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=500&h=500&fit=crop',
+        category: 'sports',
+        stock: 8,
+        featured: false,
+      },
+      {
+        id: '22',
+        name: 'Basketball Official',
+        description: 'Official size basketball with premium grip',
+        price: 39.99,
+        image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=500&h=500&fit=crop',
+        category: 'sports',
+        stock: 30,
+        featured: true,
+      },
+      {
+        id: '23',
+        name: 'Cycling Helmet',
+        description: 'Lightweight safety helmet with ventilation system',
+        price: 89.99,
+        image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500&h=500&fit=crop',
+        category: 'sports',
+        stock: 15,
+        featured: false,
+      },
+
+      // Books & Media
+      {
+        id: '24',
+        name: 'Programming Guide 2024',
+        description: 'Complete guide to modern web development',
+        price: 49.99,
+        image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=500&h=500&fit=crop',
+        category: 'books',
+        stock: 50,
+        featured: true,
+      },
+      {
+        id: '25',
+        name: 'Design Thinking Book',
+        description: 'Essential principles of creative problem solving',
+        price: 34.99,
+        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&h=500&fit=crop',
+        category: 'books',
+        stock: 25,
+        featured: false,
+      },
+      {
+        id: '26',
+        name: 'Business Strategy',
+        description: 'Modern approaches to business growth and innovation',
+        price: 39.99,
+        image: 'https://images.unsplash.com/photo-1589998059171-988d887df646?w=500&h=500&fit=crop',
+        category: 'books',
+        stock: 20,
+        featured: false,
+      },
+
+      // Automotive
+      {
+        id: '27',
+        name: 'Car Phone Mount',
+        description: 'Universal smartphone mount for car dashboard',
+        price: 29.99,
+        image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=500&h=500&fit=crop',
+        category: 'automotive',
+        stock: 40,
+        featured: false,
+      },
+      {
+        id: '28',
+        name: 'Car Care Kit',
+        description: 'Complete car cleaning and maintenance kit',
+        price: 79.99,
+        image: 'https://images.unsplash.com/photo-1494976688153-57bda8075e89?w=500&h=500&fit=crop',
+        category: 'automotive',
+        stock: 15,
+        featured: true,
+      },
+      {
+        id: '29',
+        name: 'Dash Camera HD',
+        description: 'High-definition dashboard camera with night vision',
+        price: 159.99,
+        image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=500&h=500&fit=crop',
+        category: 'automotive',
+        stock: 12,
+        featured: false,
       },
     ];
     setProducts(mockProducts);
     setFilteredProducts(mockProducts);
   }, []);
 
-  const categories = ['all', 'Electronics', 'Fashion', 'Lifestyle', 'Accessories', 'Home'];
+  const categories = ['all', 'electronics', 'fashion', 'home', 'lifestyle', 'accessories', 'sports', 'books', 'automotive'];
+
+  // Update URL when category changes
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    if (category === 'all') {
+      setSearchParams({});
+    } else {
+      setSearchParams({ category });
+    }
+  };
+
+  // Listen for URL parameter changes
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    if (categoryParam && categories.includes(categoryParam)) {
+      setSelectedCategory(categoryParam);
+    } else {
+      setSelectedCategory('all');
+    }
+  }, [searchParams]);
 
   // Filter products based on search, category, and price
   useEffect(() => {
@@ -148,9 +415,17 @@ const ProductListing = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-3xl font-bold mb-2">All Products</h1>
+          <h1 className="text-3xl font-bold mb-2">
+            {selectedCategory === 'all' 
+              ? 'All Products' 
+              : `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Products`
+            }
+          </h1>
           <p className="text-muted-foreground">
-            Discover our complete collection of amazing products
+            {selectedCategory === 'all' 
+              ? 'Discover our complete collection of amazing products'
+              : `Explore our ${selectedCategory} category collection`
+            }
           </p>
         </motion.div>
 
@@ -184,14 +459,15 @@ const ProductListing = () => {
               {/* Categories */}
               <div className="space-y-2 mb-6">
                 <label className="text-sm font-medium">Category</label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <Select value={selectedCategory} onValueChange={handleCategoryChange}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map(category => (
                       <SelectItem key={category} value={category}>
-                        {category === 'all' ? 'All Categories' : category}
+                        {category === 'all' ? 'All Categories' : 
+                         category.charAt(0).toUpperCase() + category.slice(1)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -297,7 +573,7 @@ const ProductListing = () => {
                   variant="outline"
                   onClick={() => {
                     setSearchQuery('');
-                    setSelectedCategory('all');
+                    handleCategoryChange('all');
                     setPriceRange([0, 1000]);
                   }}
                 >
