@@ -2,10 +2,21 @@ import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import User from '../models/User';
 import { AuthRequest } from '../middleware/authMiddleware';
+import bcrypt from 'bcryptjs';
 
 export const signup = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password, role = 'customer' } = req.body;
+    const { 
+      email, 
+      password, 
+      role = 'customer',
+      firstName,
+      lastName,
+      phone,
+      dateOfBirth,
+      address,
+      preferences
+    } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -17,11 +28,21 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Create new user
+    // Create new user with profile data
     const user = await User.create({
       email,
       password,
-      role
+      role,
+      firstName,
+      lastName,
+      phone,
+      dateOfBirth,
+      address: address || {},
+      preferences: preferences || {
+        newsletter: true,
+        smsNotifications: false,
+        emailNotifications: true,
+      }
     });
 
     // Generate JWT token
@@ -52,8 +73,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    // Find user by email
-    const user = await User.findOne({ where: { email } });
+    // Find user by email (exact first)
+    let user = await User.findOne({ where: { email } });
+    if (!user) {
+      // Fallback: case-insensitive match for legacy records
+      const { Op, fn, col, where } = require('sequelize');
+      user = await User.findOne({
+        where: where(fn('LOWER', col('email')), email.toLowerCase())
+      });
+    }
     if (!user) {
       res.status(401).json({
         success: false,
@@ -63,7 +91,18 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Validate password
-    const isValidPassword = await user.validatePassword(password);
+    let isValidPassword = await user.validatePassword(password);
+    if (!isValidPassword) {
+      // Compatibility: if stored password is plaintext (legacy), upgrade it
+      if (user.password === password) {
+        const salt = await bcrypt.genSalt(12);
+        const hashed = await bcrypt.hash(password, salt);
+        user.password = hashed;
+        await user.save();
+        isValidPassword = true;
+      }
+    }
+
     if (!isValidPassword) {
       res.status(401).json({
         success: false,
@@ -114,6 +153,54 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
     });
   } catch (error) {
     console.error('Get me error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+export const updateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+      return;
+    }
+
+    const {
+      firstName,
+      lastName,
+      phone,
+      dateOfBirth,
+      address,
+      preferences
+    } = req.body;
+
+    // Update user profile
+    await req.user.update({
+      firstName,
+      lastName,
+      phone,
+      dateOfBirth,
+      address,
+      preferences
+    });
+
+    // Reload user to get updated data
+    await req.user.reload();
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        user: req.user.toJSON()
+      }
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

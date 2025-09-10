@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingCart, User, Menu, X, Search } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Search, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface NavbarProps {
   cartItemCount?: number;
@@ -17,6 +19,8 @@ const Navbar = ({ cartItemCount = 0, isAdmin = false }: NavbarProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+  const { toast } = useToast();
 
   const navigationItems = isAdmin ? [
     { name: 'Dashboard', href: '/admin' },
@@ -48,6 +52,15 @@ const Navbar = ({ cartItemCount = 0, isAdmin = false }: NavbarProps) => {
       setIsSearchOpen(false);
       setSearchQuery('');
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "Logged out successfully",
+      description: "You have been logged out of your account.",
+    });
+    navigate('/');
   };
 
   return (
@@ -148,9 +161,23 @@ const Navbar = ({ cartItemCount = 0, isAdmin = false }: NavbarProps) => {
 
             {/* Profile Button */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button variant="ghost" size="sm" onClick={handleProfileClick}>
-                <User className="h-4 w-4" />
-              </Button>
+              {isAuthenticated ? (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-muted-foreground hidden sm:block">
+                    Welcome, {user?.firstName || user?.email}
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={handleProfileClick}>
+                    <User className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={handleLogout} title="Logout">
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={() => navigate('/admin/login')}>
+                  <User className="h-4 w-4" />
+                </Button>
+              )}
             </motion.div>
 
             {/* Mobile Menu Button */}

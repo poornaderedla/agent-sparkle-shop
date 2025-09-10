@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, MapPin, Calendar, Package, Heart, Settings, Edit, Save, X, Eye, EyeOff, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,26 +12,101 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { authAPI, orderAPI } from '@/lib/api';
+import type { Order } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { updateUser } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
+
+  // Load user data and orders
+  const loadUserData = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        // Load user profile
+        const userResponse = await authAPI.getMe();
+        if (userResponse.data.data?.user) {
+          setUserProfile({
+            firstName: userResponse.data.data.user.firstName || '',
+            lastName: userResponse.data.data.user.lastName || '',
+            email: userResponse.data.data.user.email || '',
+            phone: userResponse.data.data.user.phone || '',
+            dateOfBirth: userResponse.data.data.user.dateOfBirth || '',
+            address: userResponse.data.data.user.address || {
+              street: '',
+              city: '',
+              state: '',
+              zipCode: '',
+              country: 'United States'
+            },
+            preferences: userResponse.data.data.user.preferences || {
+              newsletter: true,
+              smsNotifications: false,
+              emailNotifications: true
+            }
+          });
+        }
+        // Load order history
+        const ordersResponse = await orderAPI.getAll();
+        const orders = Array.isArray(ordersResponse.data) ? ordersResponse.data : [];
+        setOrderHistory(orders);
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load user data",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Check auth and account creation mode
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    const mode = searchParams.get('mode');
+
+    if (mode === 'create') {
+      setIsCreatingAccount(true);
+      setIsNewUser(true);
+      setIsEditing(true);
+      return;
+    }
+
+    if (!token) {
+      const next = encodeURIComponent('/profile');
+      navigate(`/admin/login?next=${next}`);
+      return;
+    }
+
+    // Load user data if authenticated
+    loadUserData();
+  }, [searchParams]);
 
   // User profile data
   const [userProfile, setUserProfile] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 (555) 123-4567',
-    dateOfBirth: '1990-05-15',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    dateOfBirth: '',
     address: {
-      street: '123 Main Street',
-      city: 'San Francisco',
-      state: 'CA',
-      zipCode: '94102',
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
       country: 'United States'
     },
     preferences: {
@@ -41,92 +116,121 @@ const Profile = () => {
     }
   });
 
-  // Order history data
-  const orderHistory = [
-    {
-      id: 'ECO-2024-001234',
-      date: '2024-01-15',
-      status: 'delivered',
-      total: 697.65,
-      items: [
-        {
-          name: 'Wireless Headphones Pro',
-          quantity: 2,
-          price: 299.99,
-          image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop&auto=format&q=80'
-        },
-        {
-          name: 'Eco-Friendly Water Bottle',
-          quantity: 1,
-          price: 45.99,
-          image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=300&h=300&fit=crop&auto=format&q=80'
-        }
-      ]
-    },
-    {
-      id: 'ECO-2024-001123',
-      date: '2024-01-10',
-      status: 'shipped',
-      total: 129.99,
-      items: [
-        {
-          name: 'Smart Fitness Watch',
-          quantity: 1,
-          price: 129.99,
-          image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&h=300&fit=crop&auto=format&q=80'
-        }
-      ]
-    },
-    {
-      id: 'ECO-2024-001012',
-      date: '2024-01-05',
-      status: 'delivered',
-      total: 89.99,
-      items: [
-        {
-          name: 'Bluetooth Speaker',
-          quantity: 1,
-          price: 89.99,
-          image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=300&h=300&fit=crop&auto=format&q=80'
-        }
-      ]
-    }
-  ];
+  // Account creation form state
+  const [accountForm, setAccountForm] = useState({
+    password: '',
+    confirmPassword: '',
+    agreeToTerms: false
+  });
 
-  // Wishlist data
-  const wishlist = [
-    {
-      id: '1',
-      name: 'Designer Leather Jacket',
-      price: 299.99,
-      image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=300&h=300&fit=crop&auto=format&q=80',
-      category: 'Fashion',
-      addedDate: '2024-01-12'
-    },
-    {
-      id: '2',
-      name: 'Minimalist Desk Lamp',
-      price: 79.99,
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&auto=format&q=80',
-      category: 'Home',
-      addedDate: '2024-01-10'
-    },
-    {
-      id: '3',
-      name: 'Yoga Mat Premium',
-      price: 69.99,
-      image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=300&h=300&fit=crop&auto=format&q=80',
-      category: 'Lifestyle',
-      addedDate: '2024-01-08'
-    }
-  ];
+  // State for dynamic data
+  const [orderHistory, setOrderHistory] = useState<Order[]>([]);
+  const [wishlist, setWishlist] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSaveProfile = () => {
-    setIsEditing(false);
-    toast({
-      title: "Profile Updated! ✅",
-      description: "Your profile information has been saved successfully.",
-    });
+  const handleCreateAccount = async () => {
+    // Validate required fields
+    if (!userProfile.firstName || !userProfile.lastName || !userProfile.email || !accountForm.password) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (accountForm.password !== accountForm.confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!accountForm.agreeToTerms) {
+      toast({
+        title: "Terms Not Accepted",
+        description: "Please agree to the terms and conditions.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // Create account with backend API
+      const registrationData = {
+        email: userProfile.email,
+        password: accountForm.password,
+        firstName: userProfile.firstName,
+        lastName: userProfile.lastName,
+        phone: userProfile.phone,
+        dateOfBirth: userProfile.dateOfBirth,
+        address: userProfile.address,
+        preferences: userProfile.preferences,
+        role: 'customer'
+      };
+
+      const response = await authAPI.register(registrationData);
+      const { token, user } = response.data.data;
+      
+      // Store token and user data
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('userData', JSON.stringify(user));
+      updateUser(user);
+      
+      setIsCreatingAccount(false);
+      setIsNewUser(false);
+      setIsEditing(false);
+      
+      toast({
+        title: "Account Created Successfully! 🎉",
+        description: "Welcome to Sparkle Shop! Your account has been created.",
+      });
+
+      // Navigate to home after successful signup
+      navigate('/');
+    } catch (error: any) {
+      console.error('Error creating account:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to create account",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      setIsLoading(true);
+      const resp = await authAPI.updateProfile(userProfile);
+      if (resp.data.data?.user) {
+        updateUser(resp.data.data.user);
+      }
+      setIsEditing(false);
+      toast({
+        title: "Profile Updated! ✅",
+        description: "Your profile information has been saved successfully.",
+      });
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      if (error?.response?.status === 401) {
+        const next = encodeURIComponent('/profile');
+        navigate(`/admin/login?next=${next}`);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancelEdit = () => {
@@ -194,25 +298,32 @@ const Profile = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">My Profile</h1>
+              <h1 className="text-3xl font-bold mb-2">
+                {isCreatingAccount ? 'Create Your Account' : 'My Profile'}
+              </h1>
               <p className="text-muted-foreground">
-                Manage your account information, orders, and preferences
+                {isCreatingAccount 
+                  ? 'Fill in your information to create your Sparkle Shop account'
+                  : 'Manage your account information, orders, and preferences'
+                }
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button
-                  variant="outline"
-                  onClick={handleLogout}
-                  className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+              {!isCreatingAccount && (
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Button>
-              </motion.div>
+                  <Button
+                    variant="outline"
+                    onClick={handleLogout}
+                    className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </Button>
+                </motion.div>
+              )}
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                 <User className="h-8 w-8 text-primary" />
               </div>
@@ -221,56 +332,57 @@ const Profile = () => {
         </motion.div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="profile" className="flex items-center space-x-2">
-              <User className="h-4 w-4" />
-              <span>Profile</span>
-            </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center space-x-2">
-              <Package className="h-4 w-4" />
-              <span>Orders</span>
-            </TabsTrigger>
-            <TabsTrigger value="wishlist" className="flex items-center space-x-2">
-              <Heart className="h-4 w-4" />
-              <span>Wishlist</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center space-x-2">
-              <Settings className="h-4 w-4" />
-              <span>Settings</span>
-            </TabsTrigger>
-          </TabsList>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="profile" className="flex items-center space-x-2">
+                <User className="h-4 w-4" />
+                <span>Profile</span>
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="flex items-center space-x-2">
+                <Package className="h-4 w-4" />
+                <span>Orders</span>
+              </TabsTrigger>
+              <TabsTrigger value="wishlist" className="flex items-center space-x-2">
+                <Heart className="h-4 w-4" />
+                <span>Wishlist</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center space-x-2">
+                <Settings className="h-4 w-4" />
+                <span>Settings</span>
+              </TabsTrigger>
+            </TabsList>
 
           {/* Profile Tab */}
-          <TabsContent value="profile">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card className="card-elegant">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Personal Information</CardTitle>
-                    <div className="flex space-x-2">
-                      {isEditing ? (
-                        <>
-                          <Button size="sm" onClick={handleSaveProfile} className="btn-hero">
-                            <Save className="h-4 w-4 mr-2" />
-                            Save
+          (
+            <TabsContent value="profile">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="card-elegant">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Personal Information</CardTitle>
+                      <div className="flex space-x-2">
+                        {isEditing ? (
+                          <>
+                            <Button size="sm" onClick={handleSaveProfile} className="btn-hero">
+                              <Save className="h-4 w-4 mr-2" />
+                              Save
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                              <X className="h-4 w-4 mr-2" />
+                              Cancel
+                            </Button>
+                          </>
+                        ) : (
+                          <Button size="sm" onClick={() => setIsEditing(true)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
                           </Button>
-                          <Button size="sm" variant="outline" onClick={handleCancelEdit}>
-                            <X className="h-4 w-4 mr-2" />
-                            Cancel
-                          </Button>
-                        </>
-                      ) : (
-                        <Button size="sm" onClick={() => setIsEditing(true)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
+                  </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -323,7 +435,53 @@ const Profile = () => {
                     </div>
                   </div>
 
-                  <Separator className="my-6" />
+                  {/* Account Creation Fields (only when creating) */}
+                  {isCreatingAccount && (
+                    <>
+                      <Separator className="my-6" />
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4">Account Security</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="password">Password</Label>
+                            <div className="relative">
+                              <Input
+                                id="password"
+                                type={showPassword ? "text" : "password"}
+                                value={accountForm.password}
+                                onChange={(e) => setAccountForm(prev => ({ ...prev, password: e.target.value }))}
+                                placeholder="Enter your password"
+                                required
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-3"
+                                onClick={() => setShowPassword(!showPassword)}
+                              >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="confirmPassword">Confirm Password</Label>
+                            <Input
+                              id="confirmPassword"
+                              type="password"
+                              value={accountForm.confirmPassword}
+                              onChange={(e) => setAccountForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                              placeholder="Confirm your password"
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Hide extra separator when creating account to keep spacing consistent */}
+                  {!isCreatingAccount && <Separator className="my-6" />}
 
                   <div>
                     <h3 className="text-lg font-semibold mb-4">Address Information</h3>
@@ -390,6 +548,32 @@ const Profile = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Terms and Conditions for Account Creation */}
+                  {isCreatingAccount && (
+                    <>
+                      <Separator className="my-6" />
+                      <div className="flex items-start space-x-2">
+                        <input
+                          type="checkbox"
+                          id="agreeToTerms"
+                          checked={accountForm.agreeToTerms}
+                          onChange={(e) => setAccountForm(prev => ({ ...prev, agreeToTerms: e.target.checked }))}
+                          className="mt-1"
+                        />
+                        <Label htmlFor="agreeToTerms" className="text-sm">
+                          I agree to the{' '}
+                          <Button variant="link" className="p-0 h-auto text-primary">
+                            Terms and Conditions
+                          </Button>
+                          {' '}and{' '}
+                          <Button variant="link" className="p-0 h-auto text-primary">
+                            Privacy Policy
+                          </Button>
+                        </Label>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -404,10 +588,10 @@ const Profile = () => {
             >
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold">Order History</h2>
-                <Badge variant="secondary">{orderHistory.length} Orders</Badge>
+                <Badge variant="secondary">{Array.isArray(orderHistory) ? orderHistory.length : 0} Orders</Badge>
               </div>
 
-              {orderHistory.map((order, index) => (
+              {Array.isArray(orderHistory) && orderHistory.map((order, index) => (
                 <motion.div
                   key={order.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -420,7 +604,7 @@ const Profile = () => {
                         <div>
                           <CardTitle className="text-lg">Order #{order.id}</CardTitle>
                           <p className="text-sm text-muted-foreground">
-                            Placed on {new Date(order.date).toLocaleDateString('en-US', {
+                            Placed on {new Date(order.createdAt).toLocaleDateString('en-US', {
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric'
@@ -440,15 +624,15 @@ const Profile = () => {
                         {order.items.map((item, itemIndex) => (
                           <div key={itemIndex} className="flex items-center space-x-4">
                             <img
-                              src={item.image}
-                              alt={item.name}
+                              src={item.product.image}
+                              alt={item.product.name}
                               className="w-12 h-12 rounded-lg object-cover"
                             />
                             <div className="flex-1">
-                              <h4 className="font-medium">{item.name}</h4>
+                              <h4 className="font-medium">{item.product.name}</h4>
                               <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
                             </div>
-                            <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                            <p className="font-semibold">${(item.product.price * item.quantity).toFixed(2)}</p>
                           </div>
                         ))}
                       </div>

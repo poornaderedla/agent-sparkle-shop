@@ -27,6 +27,25 @@ export const validateSignup = [
     .optional()
     .isIn(['customer', 'admin'])
     .withMessage('Role must be either customer or admin'),
+  body('firstName')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('First name must be between 1 and 100 characters'),
+  body('lastName')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Last name must be between 1 and 100 characters'),
+  body('phone')
+    .optional()
+    .trim()
+    .isLength({ min: 10, max: 20 })
+    .withMessage('Phone number must be between 10 and 20 characters'),
+  body('dateOfBirth')
+    .optional()
+    .isISO8601()
+    .withMessage('Date of birth must be a valid date'),
   handleValidationErrors
 ];
 
@@ -73,9 +92,29 @@ export const validateProduct = [
 
 // Cart validation rules
 export const validateCartItem = [
-  body('product_id')
+  body('productId')
+    .optional()
     .isInt({ min: 1 })
     .withMessage('Product ID must be a positive integer'),
+  body('product_id')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Product ID must be a positive integer'),
+  body('quantity')
+    .isInt({ min: 1 })
+    .withMessage('Quantity must be a positive integer'),
+  // Custom validation to ensure at least one product ID is provided
+  body().custom((value) => {
+    if (!value.productId && !value.product_id) {
+      throw new Error('Either productId or product_id must be provided');
+    }
+    return true;
+  }),
+  handleValidationErrors
+];
+
+// Cart update validation rules (only quantity needed)
+export const validateCartUpdate = [
   body('quantity')
     .isInt({ min: 1 })
     .withMessage('Quantity must be a positive integer'),

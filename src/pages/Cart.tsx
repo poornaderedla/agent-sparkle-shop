@@ -5,74 +5,117 @@ import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { cartAPI } from '@/lib/api';
 import type { CartItem } from '@/lib/api';
 
 const Cart = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Mock cart data
+  // Helper function to safely get price as number
+  const getPrice = (price: any): number => {
+    if (typeof price === 'number') return price;
+    if (typeof price === 'string') return parseFloat(price) || 0;
+    return 0;
+  };
+
+  // Helper function to format price
+  const formatPrice = (price: any): string => {
+    return `$${getPrice(price).toFixed(2)}`;
+  };
+
+  // Load cart data from backend
+  const loadCartData = async () => {
+    try {
+      setIsLoading(true);
+      const response = await cartAPI.get();
+      // Backend returns { success: true, data: { items, total } }
+      const cartData = response.data.data || response.data;
+      const items = Array.isArray(cartData.items) ? cartData.items : [];
+      setCartItems(items);
+    } catch (error) {
+      console.error('Error loading cart data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load cart data",
+        variant: "destructive"
+      });
+      // Set empty array as fallback
+      setCartItems([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const mockCartItems: CartItem[] = [
-      {
-        id: '1',
-        productId: '1',
-        quantity: 2,
-        product: {
-          id: '1',
-          name: 'Wireless Headphones Pro',
-          description: 'Premium noise-canceling headphones with 30-hour battery life',
-          price: 299.99,
-          image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop&auto=format&q=80',
-          category: 'Electronics',
-          stock: 15,
-          featured: true,
-        },
-      },
-      {
-        id: '2',
-        productId: '2',
-        quantity: 1,
-        product: {
-          id: '2',
-          name: 'Eco-Friendly Water Bottle',
-          description: 'Sustainable stainless steel bottle with temperature control',
-          price: 45.99,
-          image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=300&h=300&fit=crop&auto=format&q=80',
-          category: 'Lifestyle',
-          stock: 32,
-          featured: false,
-        },
-      },
-    ];
-    setCartItems(mockCartItems);
+    loadCartData();
   }, []);
 
-  const updateQuantity = (itemId: string, newQuantity: number) => {
+  const updateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
       removeItem(itemId);
       return;
     }
 
-    setCartItems(prev =>
-      prev.map(item =>
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      )
-    );
+    try {
+      await cartAPI.update(itemId, newQuantity);
+      setCartItems(prev =>
+        prev.map(item =>
+          item.id === itemId ? { ...item, quantity: newQuantity } : item
+        )
+      );
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update quantity",
+        variant: "destructive"
+      });
+    }
   };
 
-  const removeItem = (itemId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== itemId));
+  const removeItem = async (itemId: string) => {
+    try {
+      await cartAPI.remove(itemId);
+      setCartItems(prev => prev.filter(item => item.id !== itemId));
+      toast({
+        title: "Item Removed",
+        description: "Item has been removed from your cart",
+      });
+    } catch (error) {
+      console.error('Error removing item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove item",
+        variant: "destructive"
+      });
+    }
   };
 
-  const clearCart = () => {
-    setCartItems([]);
+  const clearCart = async () => {
+    try {
+      await cartAPI.clear();
+      setCartItems([]);
+      toast({
+        title: "Cart Cleared",
+        description: "All items have been removed from your cart",
+      });
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clear cart",
+        variant: "destructive"
+      });
+    }
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const subtotal = Array.isArray(cartItems) ? cartItems.reduce((sum, item) => sum + (getPrice(item.product.price) * item.quantity), 0) : 0;
   const shipping = subtotal > 100 ? 0 : 15;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
@@ -86,7 +129,7 @@ const Cart = () => {
     }, 1000);
   };
 
-  if (cartItems.length === 0) {
+  if (!Array.isArray(cartItems) || cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar cartItemCount={0} />
@@ -120,7 +163,7 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar cartItemCount={cartItems.length} />
+        <Navbar cartItemCount={Array.isArray(cartItems) ? cartItems.length : 0} />
       
       <div className="container mx-auto px-4 py-8">
         <motion.div
@@ -130,7 +173,7 @@ const Cart = () => {
         >
           <h1 className="text-3xl font-bold mb-2">Shopping Cart</h1>
           <p className="text-muted-foreground">
-            {cartItems.length} item{cartItems.length !== 1 ? 's' : ''} in your cart
+            {Array.isArray(cartItems) ? cartItems.length : 0} item{Array.isArray(cartItems) && cartItems.length !== 1 ? 's' : ''} in your cart
           </p>
         </motion.div>
 
@@ -138,7 +181,7 @@ const Cart = () => {
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             <AnimatePresence mode="popLayout">
-              {cartItems.map((item) => (
+              {Array.isArray(cartItems) && cartItems.map((item) => (
                 <motion.div
                   key={item.id}
                   layout
@@ -164,7 +207,7 @@ const Cart = () => {
                             {item.product.description}
                           </p>
                           <div className="text-lg font-bold text-primary">
-                            ${item.product.price.toFixed(2)}
+                            {formatPrice(item.product.price)}
                           </div>
                         </div>
 

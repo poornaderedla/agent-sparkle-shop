@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { signup, login, getMe } from '../controllers/authController';
+import { signup, login, getMe, updateProfile } from '../controllers/authController';
 import { authenticateToken } from '../middleware/authMiddleware';
 import { authLimiter } from '../middleware/rateLimiter';
 import { validateSignup, validateLogin } from '../middleware/validation';
@@ -15,5 +15,6 @@ router.post('/login', validateLogin, login);
 
 // Protected routes
 router.get('/me', authenticateToken, getMe);
+router.put('/profile', authenticateToken, updateProfile);
 
 export default router;

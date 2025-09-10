@@ -11,11 +11,14 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { cartAPI, orderAPI, authAPI } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import type { CartItem } from '@/lib/api';
 
 const Checkout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -97,20 +100,29 @@ const Checkout = () => {
     { id: 4, title: 'Review', icon: Lock }
   ];
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate login
-    setTimeout(() => {
+    try {
+      await login(loginForm.email, loginForm.password, 'customer');
+      
       setIsLoggedIn(true);
-      setIsLoading(false);
       setCurrentStep(2);
       toast({
         title: "Login Successful! ✅",
         description: "Welcome back! Please continue with your order.",
       });
-    }, 1000);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login Failed",
+        description: error.response?.data?.message || "Invalid email or password",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleShippingNext = () => {
@@ -198,7 +210,11 @@ const Checkout = () => {
             <div className="text-center">
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{' '}
-                <Button variant="link" className="p-0 h-auto">
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto"
+                  onClick={() => navigate('/profile?mode=create')}
+                >
                   Create one here
                 </Button>
               </p>

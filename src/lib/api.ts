@@ -23,8 +23,21 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      window.location.href = '/admin/login';
+      const requestUrl: string | undefined = error.config?.url;
+      const isAuthEndpoint = requestUrl ? requestUrl.includes('/auth/') : false;
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/';
+      const token = localStorage.getItem('authToken');
+
+      // Clear token on unauthorized
+      if (token) {
+        localStorage.removeItem('authToken');
+      }
+
+      // Avoid redirect loops and don't redirect for auth endpoints themselves
+      if (!isAuthEndpoint && typeof window !== 'undefined' && window.location.pathname !== '/admin/login') {
+        const nextParam = encodeURIComponent(currentPath);
+        window.location.href = `/admin/login?next=${nextParam}`;
+      }
     }
     return Promise.reject(error);
   }
@@ -89,10 +102,10 @@ export const productAPI = {
 
 export const cartAPI = {
   get: () => api.get<CartItem[]>('/cart'),
-  add: (productId: string, quantity: number) => api.post<CartItem>('/cart', { productId, quantity }),
-  update: (itemId: string, quantity: number) => api.put<CartItem>(`/cart/${itemId}`, { quantity }),
-  remove: (itemId: string) => api.delete(`/cart/${itemId}`),
-  clear: () => api.delete('/cart'),
+  add: (productId: string, quantity: number) => api.post<CartItem>('/cart/add', { productId, quantity }),
+  update: (itemId: string, quantity: number) => api.put<CartItem>(`/cart/update/${itemId}`, { quantity }),
+  remove: (itemId: string) => api.delete(`/cart/remove/${itemId}`),
+  clear: () => api.delete('/cart/clear'),
 };
 
 export const orderAPI = {
@@ -102,10 +115,15 @@ export const orderAPI = {
   updateStatus: (id: string, status: Order['status']) => api.put<Order>(`/orders/${id}/status`, { status }),
 };
 
+// Backend responses are wrapped: { success, message?, data: {...} }
+type ApiEnvelope<T> = { success: boolean; message?: string; data: T };
+
 export const authAPI = {
   login: (email: string, password: string, role: 'admin' | 'customer') => 
-    api.post<{ token: string; user: any }>('/auth/login', { email, password, role }),
-  register: (userData: any) => api.post<{ token: string; user: any }>('/auth/register', userData),
+    api.post<ApiEnvelope<{ token: string; user: any }>>('/auth/login', { email, password, role }),
+  register: (userData: any) => api.post<ApiEnvelope<{ token: string; user: any }>>('/auth/signup', userData),
+  getMe: () => api.get<ApiEnvelope<{ user: any }>>('/auth/me'),
+  updateProfile: (profileData: any) => api.put<ApiEnvelope<{ user: any }>>('/auth/profile', profileData),
   logout: () => api.post('/auth/logout'),
 };
 

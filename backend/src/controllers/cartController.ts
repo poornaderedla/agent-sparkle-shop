@@ -5,11 +5,12 @@ import { AuthRequest } from '../middleware/authMiddleware';
 
 export const addToCart = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { product_id, quantity = 1 } = req.body;
+    const { productId, product_id, quantity = 1 } = req.body;
+    const product_id_final = productId || product_id;
     const userId = req.user!.id;
 
     // Check if product exists and is in stock
-    const product = await Product.findByPk(product_id);
+    const product = await Product.findByPk(product_id_final);
     if (!product) {
       res.status(404).json({
         success: false,
@@ -28,7 +29,7 @@ export const addToCart = async (req: AuthRequest, res: Response): Promise<void> 
 
     // Check if item already exists in cart
     const existingCartItem = await Cart.findOne({
-      where: { user_id: userId, product_id }
+      where: { user_id: userId, product_id: product_id_final }
     });
 
     if (existingCartItem) {
@@ -46,7 +47,7 @@ export const addToCart = async (req: AuthRequest, res: Response): Promise<void> 
       // Create new cart item
       await Cart.create({
         user_id: userId,
-        product_id,
+        product_id: product_id_final,
         quantity
       });
     }

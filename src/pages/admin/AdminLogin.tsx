@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Lock, Mail, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,8 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const AdminLogin = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginData, setLoginData] = useState({
@@ -16,14 +23,44 @@ const AdminLogin = () => {
   });
 
   const handleLogin = async (role: 'admin' | 'customer') => {
+    if (!loginData.email || !loginData.password) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter both email and password",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await login(loginData.email, loginData.password, role);
+      
+      toast({
+        title: "Login Successful! ✅",
+        description: `Welcome back! Redirecting to ${role} dashboard...`,
+      });
+
+      // Navigate based on next param or role
+      const next = searchParams.get('next');
+      if (next) {
+        navigate(next);
+      } else if (role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login Failed",
+        description: error.response?.data?.message || "Invalid email or password",
+        variant: "destructive"
+      });
+    } finally {
       setIsLoading(false);
-      // Handle login logic here
-      console.log('Login attempt:', { ...loginData, role });
-    }, 1500);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -192,7 +229,12 @@ const AdminLogin = () => {
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{' '}
-                <Button variant="link" size="sm" className="p-0 h-auto">
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="p-0 h-auto"
+                  onClick={() => navigate('/profile?mode=create')}
+                >
                   Sign up here
                 </Button>
               </p>

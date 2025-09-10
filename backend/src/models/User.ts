@@ -7,6 +7,22 @@ export interface UserAttributes {
   email: string;
   password: string;
   role: 'customer' | 'admin';
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  dateOfBirth?: Date;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+  };
+  preferences?: {
+    newsletter?: boolean;
+    smsNotifications?: boolean;
+    emailNotifications?: boolean;
+  };
   created_at?: Date;
   updated_at?: Date;
 }
@@ -18,6 +34,22 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public email!: string;
   public password!: string;
   public role!: 'customer' | 'admin';
+  public firstName?: string;
+  public lastName?: string;
+  public phone?: string;
+  public dateOfBirth?: Date;
+  public address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+  };
+  public preferences?: {
+    newsletter?: boolean;
+    smsNotifications?: boolean;
+    emailNotifications?: boolean;
+  };
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
 
@@ -59,6 +91,36 @@ User.init(
       type: DataTypes.ENUM('customer', 'admin'),
       allowNull: false,
       defaultValue: 'customer',
+    },
+    firstName: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    lastName: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    phone: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
+    dateOfBirth: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+    address: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: {},
+    },
+    preferences: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: {
+        newsletter: true,
+        smsNotifications: false,
+        emailNotifications: true,
+      },
     },
   },
   {

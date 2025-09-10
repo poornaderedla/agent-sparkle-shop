@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
+import { productAPI, cartAPI } from '@/lib/api';
 import type { Product } from '@/lib/api';
 
 const ProductListing = () => {
@@ -34,9 +35,47 @@ const ProductListing = () => {
   const [featuredOnly, setFeaturedOnly] = useState<boolean>(false);
   const { toast } = useToast();
 
-  // Mock products data - Complete catalog for all categories
+  // Load products from backend API
+  const loadProducts = async () => {
+    try {
+      let response;
+      if (selectedCategory === 'all') {
+        response = await productAPI.getAll();
+      } else {
+        response = await productAPI.getByCategory(selectedCategory);
+      }
+      const apiData: any = response.data;
+      const list: Product[] = Array.isArray(apiData)
+        ? apiData
+        : (Array.isArray(apiData?.data) ? apiData.data : []);
+
+      if (Array.isArray(list) && list.length > 0) {
+        setProducts(list);
+        setFilteredProducts(list);
+      } else {
+        // Fallback to mock data if API returns non-array or empty
+        setProducts(mockProducts);
+        setFilteredProducts(mockProducts);
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load products",
+        variant: "destructive"
+      });
+      // Fallback to mock on error
+      setProducts(mockProducts);
+      setFilteredProducts(mockProducts);
+    }
+  };
+
   useEffect(() => {
-    const mockProducts: Product[] = [
+    loadProducts();
+  }, [selectedCategory]);
+
+  // Mock products data - Complete catalog for all categories (fallback)
+  const mockProducts: Product[] = [
       // Electronics
       {
         id: '1',
@@ -402,25 +441,32 @@ const ProductListing = () => {
         featured: false,
       },
     ];
-    setProducts(mockProducts);
-    setFilteredProducts(mockProducts);
+  // Fallback to mock data if API fails
+  useEffect(() => {
+    if (!Array.isArray(products) || products.length === 0) {
+      setProducts(mockProducts);
+      setFilteredProducts(mockProducts);
+    }
   }, []);
 
   const categories = ['all', 'electronics', 'fashion', 'home', 'lifestyle', 'accessories', 'sports', 'books', 'automotive'];
 
   // Get unique values for filters
   const getUniqueColors = () => {
-    const colors = products.map(p => p.color).filter(Boolean);
+    const base = Array.isArray(products) ? products : [];
+    const colors = base.map(p => p.color).filter(Boolean);
     return [...new Set(colors)];
   };
 
   const getUniqueBrands = () => {
-    const brands = products.map(p => p.brand).filter(Boolean);
+    const base = Array.isArray(products) ? products : [];
+    const brands = base.map(p => p.brand).filter(Boolean);
     return [...new Set(brands)];
   };
 
   const getUniqueSizes = () => {
-    const sizes = products.map(p => p.size).filter(Boolean);
+    const base = Array.isArray(products) ? products : [];
+    const sizes = base.map(p => p.size).filter(Boolean);
     return [...new Set(sizes)];
   };
 
@@ -624,12 +670,22 @@ const ProductListing = () => {
     setFilteredProducts(filtered);
   }, [products, searchQuery, selectedCategory, priceRange, sortBy, selectedColors, selectedBrands, selectedSizes, selectedRating, availabilityFilter, featuredOnly]);
 
-  const handleAddToCart = (productId: string) => {
-    setCartItemCount(prev => prev + 1);
-    toast({
-      title: "Added to cart! 🛒",
-      description: "Product has been added to your shopping cart.",
-    });
+  const handleAddToCart = async (productId: string) => {
+    try {
+      await cartAPI.add(productId, 1);
+      setCartItemCount(prev => prev + 1);
+      toast({
+        title: "Added to cart! 🛒",
+        description: "Product has been added to your shopping cart.",
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add product to cart",
+        variant: "destructive"
+      });
+    }
   };
 
   return (

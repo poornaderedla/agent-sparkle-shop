@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
+import { productAPI, cartAPI } from '@/lib/api';
 import type { Product } from '@/lib/api';
 
 const Index = () => {
@@ -15,51 +16,70 @@ const Index = () => {
   const [cartItemCount, setCartItemCount] = useState(0);
   const { toast } = useToast();
 
-  // Mock featured products data
+  // Mock products for fallback
+  const mockProducts: Product[] = [
+    {
+      id: '1',
+      name: 'Wireless Headphones Pro',
+      description: 'Premium noise-canceling headphones with 30-hour battery life',
+      price: 299.99,
+      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop&auto=format&q=80',
+      category: 'electronics',
+      stock: 15,
+      featured: true,
+    },
+    {
+      id: '2',
+      name: 'Eco-Friendly Water Bottle',
+      description: 'Sustainable stainless steel bottle with temperature control',
+      price: 45.99,
+      image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&h=500&fit=crop&auto=format&q=80',
+      category: 'lifestyle',
+      stock: 32,
+      featured: true,
+    },
+    {
+      id: '3',
+      name: 'Smart Fitness Watch',
+      description: 'Advanced health tracking with GPS and heart rate monitor',
+      price: 199.99,
+      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&h=500&fit=crop&auto=format&q=80',
+      category: 'electronics',
+      stock: 8,
+      featured: true,
+    },
+    {
+      id: '4',
+      name: 'Camping Backpack',
+      description: 'Durable hiking backpack for outdoor adventures',
+      price: 179.99,
+      image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&h=500&fit=crop&auto=format&q=80',
+      category: 'sports',
+      stock: 20,
+      featured: true,
+    },
+  ];
+
+  // Load featured products from backend
+  const loadFeaturedProducts = async () => {
+    try {
+      const response = await productAPI.getFeatured();
+      // Ensure response.data is an array before setting it
+      if (Array.isArray(response.data)) {
+        setFeaturedProducts(response.data);
+      } else {
+        console.warn('API returned non-array data, using mock products');
+        setFeaturedProducts(mockProducts);
+      }
+    } catch (error) {
+      console.error('Error loading featured products:', error);
+      // Fallback to mock data if API fails
+      setFeaturedProducts(mockProducts);
+    }
+  };
+
   useEffect(() => {
-    const mockProducts: Product[] = [
-        {
-          id: '1',
-          name: 'Wireless Headphones Pro',
-          description: 'Premium noise-canceling headphones with 30-hour battery life',
-          price: 299.99,
-          image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop&auto=format&q=80',
-          category: 'electronics',
-          stock: 15,
-          featured: true,
-        },
-        {
-          id: '2',
-          name: 'Eco-Friendly Water Bottle',
-          description: 'Sustainable stainless steel bottle with temperature control',
-          price: 45.99,
-          image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&h=500&fit=crop&auto=format&q=80',
-          category: 'lifestyle',
-          stock: 32,
-          featured: true,
-        },
-        {
-          id: '3',
-          name: 'Smart Fitness Watch',
-          description: 'Advanced health tracking with GPS and heart rate monitor',
-          price: 199.99,
-          image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&h=500&fit=crop&auto=format&q=80',
-          category: 'electronics',
-          stock: 8,
-          featured: true,
-        },
-        {
-          id: '4',
-          name: 'Camping Backpack',
-          description: 'Durable hiking backpack for outdoor adventures',
-          price: 179.99,
-          image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&h=500&fit=crop&auto=format&q=80',
-          category: 'sports',
-          stock: 20,
-          featured: true,
-        },
-    ];
-    setFeaturedProducts(mockProducts);
+    loadFeaturedProducts();
   }, []);
 
   const stats = [
@@ -69,12 +89,27 @@ const Index = () => {
     { icon: Star, label: 'Average Rating', value: '4.9' },
   ];
 
-  const handleAddToCart = (productId: string) => {
-    setCartItemCount(prev => prev + 1);
-    toast({
-      title: "Added to cart! 🛒",
-      description: "Product has been added to your shopping cart.",
-    });
+  const handleAddToCart = async (productId: string) => {
+    try {
+      await cartAPI.add(productId, 1);
+      setCartItemCount(prev => prev + 1);
+      toast({
+        title: "Added to cart! 🛒",
+        description: "Product has been added to your shopping cart.",
+      });
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        const next = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/admin/login?next=${next}`;
+        return;
+      }
+      console.error('Error adding to cart:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add product to cart",
+        variant: "destructive"
+      });
+    }
   };
 
   return (

@@ -9,7 +9,7 @@ import {
 import { authenticateToken } from '../middleware/authMiddleware';
 import { requireCustomer } from '../middleware/roleMiddleware';
 import { generalLimiter } from '../middleware/rateLimiter';
-import { validateCartItem } from '../middleware/validation';
+import { validateCartItem, validateCartUpdate } from '../middleware/validation';
 
 const router = Router();
 
@@ -21,7 +21,7 @@ router.use(requireCustomer);
 // Cart routes
 router.post('/add', validateCartItem, addToCart);
 router.get('/', getCart);
-router.put('/update/:id', validateCartItem, updateCartItem);
+router.put('/update/:id', validateCartUpdate, updateCartItem);
 router.delete('/remove/:id', removeFromCart);
 router.delete('/clear', clearCart);
 
