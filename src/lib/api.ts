@@ -40,6 +40,12 @@ export interface Product {
   category: string;
   stock: number;
   featured?: boolean;
+  color?: string;
+  brand?: string;
+  size?: string;
+  rating?: number;
+  discount?: number;
+  tags?: string[];
 }
 
 export interface CartItem {

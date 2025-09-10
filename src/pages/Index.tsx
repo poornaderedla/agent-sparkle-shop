@@ -119,14 +119,6 @@ const Index = () => {
                     </Button>
                   </Link>
                 </motion.div>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Button size="lg" variant="outline" className="btn-ghost-primary">
-                    Learn More
-                  </Button>
-                </motion.div>
               </div>
             </motion.div>
 

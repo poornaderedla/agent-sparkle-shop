@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import Footer from '@/components/Footer';
 import type { CartItem } from '@/lib/api';
 
 const Cart = () => {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -81,7 +82,7 @@ const Cart = () => {
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
-      // Navigate to checkout
+      navigate('/checkout');
     }, 1000);
   };
 
