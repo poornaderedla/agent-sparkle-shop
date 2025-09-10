@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Heart, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import ProductQuickView from './ProductQuickView';
 import type { Product } from '@/lib/api';
 
 interface ProductCardProps {
@@ -13,6 +15,8 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, onAddToCart, onQuickView, className }: ProductCardProps) => {
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -22,6 +26,7 @@ const ProductCard = ({ product, onAddToCart, onQuickView, className }: ProductCa
   const handleQuickView = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setIsQuickViewOpen(true);
     onQuickView?.(product);
   };
 
@@ -39,6 +44,10 @@ const ProductCard = ({ product, onAddToCart, onQuickView, className }: ProductCa
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             whileHover={{ scale: 1.1 }}
+            onError={(e) => {
+              e.currentTarget.src = '/product-placeholder.svg';
+            }}
+            loading="lazy"
           />
           
           {/* Overlay Actions */}
@@ -135,6 +144,14 @@ const ProductCard = ({ product, onAddToCart, onQuickView, className }: ProductCa
           </div>
         </CardContent>
       </Card>
+
+      {/* Quick View Modal */}
+      <ProductQuickView
+        product={product}
+        isOpen={isQuickViewOpen}
+        onClose={() => setIsQuickViewOpen(false)}
+        onAddToCart={onAddToCart}
+      />
     </motion.div>
   );
 };

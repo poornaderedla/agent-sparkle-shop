@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { ShoppingCart, User, Menu, X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface NavbarProps {
   cartItemCount?: number;
@@ -12,6 +14,8 @@ interface NavbarProps {
 
 const Navbar = ({ cartItemCount = 0, isAdmin = false }: NavbarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
   const navigationItems = isAdmin ? [
@@ -34,6 +38,15 @@ const Navbar = ({ cartItemCount = 0, isAdmin = false }: NavbarProps) => {
       navigate('/admin/profile');
     } else {
       navigate('/profile');
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
+      setSearchQuery('');
     }
   };
 
@@ -83,9 +96,33 @@ const Navbar = ({ cartItemCount = 0, isAdmin = false }: NavbarProps) => {
             {!isAdmin && (
               <>
                 {/* Search Button */}
-                <Button variant="ghost" size="sm" className="hidden md:flex">
-                  <Search className="h-4 w-4" />
-                </Button>
+                <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="hidden md:flex">
+                      <Search className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Search Products</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSearch} className="space-y-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search for products..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9"
+                          autoFocus
+                        />
+                      </div>
+                      <Button type="submit" className="w-full btn-hero">
+                        Search
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
 
                 {/* Cart Button */}
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -150,10 +187,20 @@ const Navbar = ({ cartItemCount = 0, isAdmin = false }: NavbarProps) => {
             ))}
             {!isAdmin && (
               <div className="px-4 py-2">
-                <Button variant="outline" size="sm" className="w-full">
-                  <Search className="h-4 w-4 mr-2" />
-                  Search Products
-                </Button>
+                <form onSubmit={handleSearch} className="space-y-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search products..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Button type="submit" size="sm" className="w-full">
+                    Search
+                  </Button>
+                </form>
               </div>
             )}
           </div>

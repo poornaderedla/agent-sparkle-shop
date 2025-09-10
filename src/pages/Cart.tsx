@@ -25,7 +25,7 @@ const Cart = () => {
           name: 'Wireless Headphones Pro',
           description: 'Premium noise-canceling headphones with 30-hour battery life',
           price: 299.99,
-          image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop',
+          image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop&auto=format&q=80',
           category: 'Electronics',
           stock: 15,
           featured: true,
@@ -40,7 +40,7 @@ const Cart = () => {
           name: 'Eco-Friendly Water Bottle',
           description: 'Sustainable stainless steel bottle with temperature control',
           price: 45.99,
-          image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=300&h=300&fit=crop',
+          image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=300&h=300&fit=crop&auto=format&q=80',
           category: 'Lifestyle',
           stock: 32,
           featured: false,
@@ -103,10 +103,12 @@ const Cart = () => {
             <p className="text-muted-foreground mb-8">
               Looks like you haven't added any items to your cart yet.
             </p>
-            <Button size="lg" className="btn-hero">
-              Start Shopping
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <Link to="/products">
+              <Button size="lg" className="btn-hero">
+                Start Shopping
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </motion.div>
         </div>
 

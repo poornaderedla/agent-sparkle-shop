@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Star, ShoppingBag, Users, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
@@ -12,6 +13,7 @@ import type { Product } from '@/lib/api';
 const Index = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [cartItemCount, setCartItemCount] = useState(0);
+  const { toast } = useToast();
 
   // Mock featured products data
   useEffect(() => {
@@ -21,7 +23,7 @@ const Index = () => {
           name: 'Wireless Headphones Pro',
           description: 'Premium noise-canceling headphones with 30-hour battery life',
           price: 299.99,
-          image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop',
+          image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop&auto=format&q=80',
           category: 'electronics',
           stock: 15,
           featured: true,
@@ -31,7 +33,7 @@ const Index = () => {
           name: 'Eco-Friendly Water Bottle',
           description: 'Sustainable stainless steel bottle with temperature control',
           price: 45.99,
-          image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&h=500&fit=crop',
+          image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&h=500&fit=crop&auto=format&q=80',
           category: 'lifestyle',
           stock: 32,
           featured: true,
@@ -41,7 +43,7 @@ const Index = () => {
           name: 'Smart Fitness Watch',
           description: 'Advanced health tracking with GPS and heart rate monitor',
           price: 199.99,
-          image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&h=500&fit=crop',
+          image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&h=500&fit=crop&auto=format&q=80',
           category: 'electronics',
           stock: 8,
           featured: true,
@@ -51,7 +53,7 @@ const Index = () => {
           name: 'Camping Backpack',
           description: 'Durable hiking backpack for outdoor adventures',
           price: 179.99,
-          image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&h=500&fit=crop',
+          image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&h=500&fit=crop&auto=format&q=80',
           category: 'sports',
           stock: 20,
           featured: true,
@@ -69,7 +71,10 @@ const Index = () => {
 
   const handleAddToCart = (productId: string) => {
     setCartItemCount(prev => prev + 1);
-    // Add success animation or toast here
+    toast({
+      title: "Added to cart! 🛒",
+      description: "Product has been added to your shopping cart.",
+    });
   };
 
   return (
