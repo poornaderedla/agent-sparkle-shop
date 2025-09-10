@@ -2,10 +2,18 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../config/database';
 import User from './User';
 
+export interface OrderItem {
+  product_id: number;
+  product_name: string;
+  product_price: number;
+  quantity: number;
+  item_total: number;
+}
+
 export interface OrderAttributes {
   id: number;
   user_id: number;
-  items: any; // JSON field for order items
+  items: OrderItem[]; // JSON field for order items
   total_price: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   shipping_address?: string;
@@ -18,7 +26,7 @@ export interface OrderCreationAttributes extends Optional<OrderAttributes, 'id' 
 class Order extends Model<OrderAttributes, OrderCreationAttributes> implements OrderAttributes {
   public id!: number;
   public user_id!: number;
-  public items!: any;
+  public items!: OrderItem[];
   public total_price!: number;
   public status!: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   public shipping_address?: string;

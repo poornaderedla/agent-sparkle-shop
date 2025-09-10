@@ -3,7 +3,7 @@ import Cart from '../models/Cart';
 import Product from '../models/Product';
 import { AuthRequest } from '../middleware/authMiddleware';
 
-export const addToCart = async (req: AuthRequest, res: Response) => {
+export const addToCart = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { product_id, quantity = 1 } = req.body;
     const userId = req.user!.id;
@@ -11,17 +11,19 @@ export const addToCart = async (req: AuthRequest, res: Response) => {
     // Check if product exists and is in stock
     const product = await Product.findByPk(product_id);
     if (!product) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Product not found'
       });
+      return;
     }
 
     if (product.stock < quantity) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Insufficient stock available'
       });
+      return;
     }
 
     // Check if item already exists in cart
@@ -33,10 +35,11 @@ export const addToCart = async (req: AuthRequest, res: Response) => {
       // Update quantity
       const newQuantity = existingCartItem.quantity + quantity;
       if (product.stock < newQuantity) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Insufficient stock available'
         });
+        return;
       }
       await existingCartItem.update({ quantity: newQuantity });
     } else {
@@ -105,7 +108,7 @@ export const getCart = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const updateCartItem = async (req: AuthRequest, res: Response) => {
+export const updateCartItem = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { quantity } = req.body;
@@ -117,26 +120,29 @@ export const updateCartItem = async (req: AuthRequest, res: Response) => {
     });
 
     if (!cartItem) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Cart item not found'
       });
+      return;
     }
 
     // Check stock availability
     if (cartItem.product!.stock < quantity) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Insufficient stock available'
       });
+      return;
     }
 
     if (quantity <= 0) {
       await cartItem.destroy();
-      return res.json({
+      res.json({
         success: true,
         message: 'Item removed from cart'
       });
+      return;
     }
 
     await cartItem.update({ quantity });
@@ -154,7 +160,7 @@ export const updateCartItem = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const removeFromCart = async (req: AuthRequest, res: Response) => {
+export const removeFromCart = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = req.user!.id;
@@ -164,10 +170,11 @@ export const removeFromCart = async (req: AuthRequest, res: Response) => {
     });
 
     if (!cartItem) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Cart item not found'
       });
+      return;
     }
 
     await cartItem.destroy();

@@ -6,48 +6,52 @@ export interface AuthRequest extends Request {
   user?: User;
 }
 
-export const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Access token required'
       });
+      return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: number; email: string; role: string };
     
     // Find user in database
     const user = await User.findByPk(decoded.userId);
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Invalid token - user not found'
       });
+      return;
     }
 
     req.user = user;
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Invalid token'
       });
+      return;
     }
     
     if (error instanceof jwt.TokenExpiredError) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Token expired'
       });
+      return;
     }
 
     console.error('Auth middleware error:', error);
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Internal server error'
     });
@@ -60,7 +64,7 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
     const token = authHeader && authHeader.split(' ')[1];
 
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: number; email: string; role: string };
       const user = await User.findByPk(decoded.userId);
       if (user) {
         req.user = user;

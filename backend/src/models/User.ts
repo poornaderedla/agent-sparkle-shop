@@ -26,10 +26,10 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
     return bcrypt.compare(password, this.password);
   }
 
-  public toJSON(): any {
-    const values = Object.assign({}, this.get());
-    delete values.password;
-    return values;
+  public toJSON(): Omit<UserAttributes, 'password'> {
+    const values = Object.assign({}, this.get()) as UserAttributes;
+    const { password, ...userWithoutPassword } = values;
+    return userWithoutPassword;
   }
 }
 

@@ -4,7 +4,15 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Parse Railway connection string if available
-let dbConfig: any = {};
+interface DatabaseConfig {
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+}
+
+let dbConfig: DatabaseConfig;
 
 if (process.env.DATABASE_URL) {
   // Parse Railway connection string

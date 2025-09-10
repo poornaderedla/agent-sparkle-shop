@@ -8,7 +8,7 @@ import { Op } from 'sequelize';
 import { QueryTypes } from 'sequelize';
 import sequelize from '../config/database';
 
-export const getSalesAnalytics = async (req: AuthRequest, res: Response) => {
+export const getSalesAnalytics = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { period = '30d' } = req.query;
     
@@ -103,7 +103,7 @@ export const getSalesAnalytics = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getCustomerAnalytics = async (req: AuthRequest, res: Response) => {
+export const getCustomerAnalytics = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     // Total customers
     const totalCustomers = await User.count({
@@ -164,7 +164,7 @@ export const getCustomerAnalytics = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getInventoryAnalytics = async (req: AuthRequest, res: Response) => {
+export const getInventoryAnalytics = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     // Total products
     const totalProducts = await Product.count();
@@ -172,8 +172,7 @@ export const getInventoryAnalytics = async (req: AuthRequest, res: Response) => 
     // Low stock products (stock < 10)
     const lowStockProducts = await Product.findAll({
       where: {
-        stock: { [Op.lt]: 10 },
-        stock: { [Op.gt]: 0 }
+        stock: { [Op.lt]: 10, [Op.gt]: 0 }
       },
       order: [['stock', 'ASC']]
     });
@@ -222,7 +221,7 @@ export const getInventoryAnalytics = async (req: AuthRequest, res: Response) => 
   }
 };
 
-export const getDashboardStats = async (req: AuthRequest, res: Response) => {
+export const getDashboardStats = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -269,8 +268,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
     // Low stock alerts
     const lowStockCount = await Product.count({
       where: {
-        stock: { [Op.lt]: 10 },
-        stock: { [Op.gt]: 0 }
+        stock: { [Op.lt]: 10, [Op.gt]: 0 }
       }
     });
 

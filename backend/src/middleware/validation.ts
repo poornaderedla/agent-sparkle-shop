@@ -1,17 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 
-export const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
+export const handleValidationErrors = (req: Request, res: Response, next: NextFunction): void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       message: 'Validation failed',
       errors: errors.array()
     });
+    return;
   }
   next();
-};
+}
 
 // Auth validation rules
 export const validateSignup = [

@@ -1,19 +1,20 @@
 import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import User from '../models/User';
 import { AuthRequest } from '../middleware/authMiddleware';
 
-export const signup = async (req: Request, res: Response) => {
+export const signup = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password, role = 'customer' } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'User with this email already exists'
       });
+      return;
     }
 
     // Create new user
@@ -27,7 +28,7 @@ export const signup = async (req: Request, res: Response) => {
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET as string,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn: '7d' }
     );
 
     res.status(201).json({
@@ -47,33 +48,35 @@ export const signup = async (req: Request, res: Response) => {
   }
 };
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
     // Find user by email
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       });
+      return;
     }
 
     // Validate password
     const isValidPassword = await user.validatePassword(password);
     if (!isValidPassword) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       });
+      return;
     }
 
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET as string,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn: '7d' }
     );
 
     res.json({
@@ -93,13 +96,14 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-export const getMe = async (req: AuthRequest, res: Response) => {
+export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'User not authenticated'
       });
+      return;
     }
 
     res.json({

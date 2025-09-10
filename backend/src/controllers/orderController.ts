@@ -1,12 +1,12 @@
 import { Response } from 'express';
-import Order from '../models/Order';
+import Order, { OrderItem } from '../models/Order';
 import Cart from '../models/Cart';
 import Product from '../models/Product';
 import User from '../models/User';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { Op } from 'sequelize';
 
-export const createOrder = async (req: AuthRequest, res: Response) => {
+export const createOrder = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { shipping_address } = req.body;
     const userId = req.user!.id;
@@ -18,24 +18,26 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
     });
 
     if (cartItems.length === 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Cart is empty'
       });
+      return;
     }
 
     // Validate stock and calculate total
     let total = 0;
-    const orderItems: any[] = [];
+    const orderItems: OrderItem[] = [];
 
     for (const cartItem of cartItems) {
       const product = cartItem.product!;
       
       if (product.stock < cartItem.quantity) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: `Insufficient stock for ${product.name}`
         });
+        return;
       }
 
       const itemTotal = cartItem.quantity * parseFloat(product.price.toString());
@@ -55,6 +57,7 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       user_id: userId,
       items: orderItems,
       total_price: total,
+      status: 'pending',
       shipping_address
     });
 
@@ -91,9 +94,9 @@ export const getUserOrders = async (req: AuthRequest, res: Response) => {
     const { page = 1, limit = 10, status } = req.query;
 
     const offset = (Number(page) - 1) * Number(limit);
-    const where: any = { user_id: userId };
+    const where: { user_id: number; status?: string } = { user_id: userId };
 
-    if (status) {
+    if (status && typeof status === 'string') {
       where.status = status;
     }
 
@@ -130,13 +133,13 @@ export const getAllOrders = async (req: AuthRequest, res: Response) => {
     const { page = 1, limit = 20, status, user_id } = req.query;
 
     const offset = (Number(page) - 1) * Number(limit);
-    const where: any = {};
+    const where: { status?: string; user_id?: string } = {};
 
-    if (status) {
+    if (status && typeof status === 'string') {
       where.status = status;
     }
 
-    if (user_id) {
+    if (user_id && typeof user_id === 'string') {
       where.user_id = user_id;
     }
 
@@ -175,13 +178,13 @@ export const getAllOrders = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getOrderById = async (req: AuthRequest, res: Response) => {
+export const getOrderById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = req.user!.id;
     const userRole = req.user!.role;
 
-    const where: any = { id };
+    const where: { id: string; user_id?: number } = { id };
     
     // Non-admin users can only see their own orders
     if (userRole !== 'admin') {
@@ -200,10 +203,11 @@ export const getOrderById = async (req: AuthRequest, res: Response) => {
     });
 
     if (!order) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Order not found'
       });
+      return;
     }
 
     res.json({
@@ -219,17 +223,18 @@ export const getOrderById = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const updateOrderStatus = async (req: AuthRequest, res: Response) => {
+export const updateOrderStatus = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
     const order = await Order.findByPk(id);
     if (!order) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Order not found'
       });
+      return;
     }
 
     await order.update({ status });

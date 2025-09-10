@@ -7,10 +7,10 @@ export const getAllProducts = async (req: Request, res: Response) => {
     const { page = 1, limit = 20, category, search, featured, sortBy = 'created_at', sortOrder = 'DESC' } = req.query;
     
     const offset = (Number(page) - 1) * Number(limit);
-    const where: any = {};
+    const where: { category?: string; name?: any; featured?: boolean; [Op.or]?: any } = {};
 
     // Apply filters
-    if (category) {
+    if (category && typeof category === 'string') {
       where.category = category;
     }
 
@@ -53,16 +53,17 @@ export const getAllProducts = async (req: Request, res: Response) => {
   }
 };
 
-export const getProductById = async (req: Request, res: Response) => {
+export const getProductById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     
     const product = await Product.findByPk(id);
     if (!product) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Product not found'
       });
+      return;
     }
 
     res.json({
@@ -98,17 +99,18 @@ export const createProduct = async (req: Request, res: Response) => {
   }
 };
 
-export const updateProduct = async (req: Request, res: Response) => {
+export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const updateData = req.body;
     
     const product = await Product.findByPk(id);
     if (!product) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Product not found'
       });
+      return;
     }
 
     await product.update(updateData);
@@ -127,16 +129,17 @@ export const updateProduct = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteProduct = async (req: Request, res: Response) => {
+export const deleteProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     
     const product = await Product.findByPk(id);
     if (!product) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Product not found'
       });
+      return;
     }
 
     await product.destroy();
