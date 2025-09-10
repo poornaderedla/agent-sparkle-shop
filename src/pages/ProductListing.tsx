@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Filter, Search, Grid, List } from 'lucide-react';
+import { Filter, Search, Grid, List, Star, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -23,6 +24,14 @@ const ProductListing = () => {
   const [sortBy, setSortBy] = useState('featured');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [cartItemCount, setCartItemCount] = useState(0);
+  
+  // New filter states
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [selectedRating, setSelectedRating] = useState<number>(0);
+  const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
+  const [featuredOnly, setFeaturedOnly] = useState<boolean>(false);
   const { toast } = useToast();
 
   // Mock products data - Complete catalog for all categories
@@ -38,6 +47,11 @@ const ProductListing = () => {
         category: 'electronics',
         stock: 15,
         featured: true,
+        color: 'black',
+        brand: 'Sony',
+        rating: 4.8,
+        discount: 10,
+        tags: ['wireless', 'noise-canceling', 'premium'],
       },
       {
         id: '2',
@@ -48,6 +62,10 @@ const ProductListing = () => {
         category: 'electronics',
         stock: 8,
         featured: true,
+        color: 'silver',
+        brand: 'Apple',
+        rating: 4.6,
+        tags: ['fitness', 'smartwatch', 'health'],
       },
       {
         id: '3',
@@ -58,6 +76,11 @@ const ProductListing = () => {
         category: 'electronics',
         stock: 22,
         featured: false,
+        color: 'blue',
+        brand: 'JBL',
+        rating: 4.4,
+        discount: 15,
+        tags: ['portable', 'waterproof', 'bluetooth'],
       },
       {
         id: '4',
@@ -68,6 +91,10 @@ const ProductListing = () => {
         category: 'electronics',
         stock: 5,
         featured: true,
+        color: 'space gray',
+        brand: 'Apple',
+        rating: 4.9,
+        tags: ['smartphone', 'flagship', 'camera'],
       },
       {
         id: '5',
@@ -78,6 +105,10 @@ const ProductListing = () => {
         category: 'electronics',
         stock: 3,
         featured: false,
+        color: 'black',
+        brand: 'ASUS',
+        rating: 4.7,
+        tags: ['gaming', 'laptop', 'high-performance'],
       },
 
       // Fashion
@@ -90,6 +121,11 @@ const ProductListing = () => {
         category: 'fashion',
         stock: 12,
         featured: true,
+        color: 'brown',
+        brand: 'Gucci',
+        size: 'L',
+        rating: 4.5,
+        tags: ['leather', 'designer', 'jacket'],
       },
       {
         id: '7',
@@ -100,6 +136,12 @@ const ProductListing = () => {
         category: 'fashion',
         stock: 45,
         featured: false,
+        color: 'white',
+        brand: 'Nike',
+        size: 'M',
+        rating: 4.2,
+        discount: 20,
+        tags: ['cotton', 'casual', 'organic'],
       },
       {
         id: '8',
@@ -110,6 +152,11 @@ const ProductListing = () => {
         category: 'fashion',
         stock: 18,
         featured: true,
+        color: 'red',
+        brand: 'Nike',
+        size: '10',
+        rating: 4.6,
+        tags: ['running', 'sneakers', 'performance'],
       },
       {
         id: '9',
@@ -120,6 +167,11 @@ const ProductListing = () => {
         category: 'fashion',
         stock: 28,
         featured: false,
+        color: 'blue',
+        brand: 'Levi\'s',
+        size: '32',
+        rating: 4.3,
+        tags: ['denim', 'jeans', 'classic'],
       },
 
       // Home & Living
@@ -132,6 +184,10 @@ const ProductListing = () => {
         category: 'home',
         stock: 12,
         featured: true,
+        color: 'white',
+        brand: 'IKEA',
+        rating: 4.4,
+        tags: ['lamp', 'LED', 'minimalist'],
       },
       {
         id: '11',
@@ -142,6 +198,10 @@ const ProductListing = () => {
         category: 'home',
         stock: 25,
         featured: false,
+        color: 'gray',
+        brand: 'Target',
+        rating: 4.1,
+        tags: ['blanket', 'cozy', 'soft'],
       },
       {
         id: '12',
@@ -152,6 +212,10 @@ const ProductListing = () => {
         category: 'home',
         stock: 30,
         featured: true,
+        color: 'terracotta',
+        brand: 'West Elm',
+        rating: 4.7,
+        tags: ['plants', 'ceramic', 'gardening'],
       },
       {
         id: '13',
@@ -162,6 +226,10 @@ const ProductListing = () => {
         category: 'home',
         stock: 8,
         featured: false,
+        color: 'walnut',
+        brand: 'West Elm',
+        rating: 4.5,
+        tags: ['furniture', 'wooden', 'modern'],
       },
 
       // Lifestyle
@@ -340,6 +408,79 @@ const ProductListing = () => {
 
   const categories = ['all', 'electronics', 'fashion', 'home', 'lifestyle', 'accessories', 'sports', 'books', 'automotive'];
 
+  // Get unique values for filters
+  const getUniqueColors = () => {
+    const colors = products.map(p => p.color).filter(Boolean);
+    return [...new Set(colors)];
+  };
+
+  const getUniqueBrands = () => {
+    const brands = products.map(p => p.brand).filter(Boolean);
+    return [...new Set(brands)];
+  };
+
+  const getUniqueSizes = () => {
+    const sizes = products.map(p => p.size).filter(Boolean);
+    return [...new Set(sizes)];
+  };
+
+  // Color mapping for display
+  const colorMap: { [key: string]: string } = {
+    'black': '#000000',
+    'white': '#FFFFFF',
+    'red': '#EF4444',
+    'blue': '#3B82F6',
+    'green': '#10B981',
+    'yellow': '#F59E0B',
+    'purple': '#8B5CF6',
+    'pink': '#EC4899',
+    'gray': '#6B7280',
+    'brown': '#92400E',
+    'silver': '#9CA3AF',
+    'space gray': '#374151',
+    'terracotta': '#C2410C',
+    'walnut': '#92400E',
+  };
+
+  // Filter helper functions
+  const toggleColor = (color: string) => {
+    setSelectedColors(prev => 
+      prev.includes(color) 
+        ? prev.filter(c => c !== color)
+        : [...prev, color]
+    );
+  };
+
+  const toggleBrand = (brand: string) => {
+    setSelectedBrands(prev => 
+      prev.includes(brand) 
+        ? prev.filter(b => b !== brand)
+        : [...prev, brand]
+    );
+  };
+
+  const toggleSize = (size: string) => {
+    setSelectedSizes(prev => 
+      prev.includes(size) 
+        ? prev.filter(s => s !== size)
+        : [...prev, size]
+    );
+  };
+
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('all');
+    setPriceRange([0, 1000]);
+    setSelectedColors([]);
+    setSelectedBrands([]);
+    setSelectedSizes([]);
+    setSelectedRating(0);
+    setAvailabilityFilter('all');
+    setFeaturedOnly(false);
+    setSortBy('featured');
+    setSearchParams({});
+  };
+
   // Update URL when category changes
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
@@ -354,6 +495,8 @@ const ProductListing = () => {
   useEffect(() => {
     const categoryParam = searchParams.get('category');
     const searchParam = searchParams.get('search');
+    const featuredParam = searchParams.get('featured');
+    const sortParam = searchParams.get('sort');
     
     if (categoryParam && categories.includes(categoryParam)) {
       setSelectedCategory(categoryParam);
@@ -364,9 +507,23 @@ const ProductListing = () => {
     if (searchParam) {
       setSearchQuery(searchParam);
     }
+
+    // Handle featured filter
+    if (featuredParam === 'true') {
+      setFeaturedOnly(true);
+    } else {
+      setFeaturedOnly(false);
+    }
+
+    // Handle sort parameter
+    if (sortParam === 'newest') {
+      setSortBy('newest');
+    } else if (sortParam === 'featured') {
+      setSortBy('featured');
+    }
   }, [searchParams]);
 
-  // Filter products based on search, category, and price
+  // Filter products based on all criteria
   useEffect(() => {
     let filtered = products;
 
@@ -374,7 +531,10 @@ const ProductListing = () => {
     if (searchQuery) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase())
+        product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.tags && product.tags.some(tag => 
+          tag.toLowerCase().includes(searchQuery.toLowerCase())
+        ))
       );
     }
 
@@ -388,6 +548,55 @@ const ProductListing = () => {
       product.price >= priceRange[0] && product.price <= priceRange[1]
     );
 
+    // Color filter
+    if (selectedColors.length > 0) {
+      filtered = filtered.filter(product => 
+        product.color && selectedColors.includes(product.color)
+      );
+    }
+
+    // Brand filter
+    if (selectedBrands.length > 0) {
+      filtered = filtered.filter(product => 
+        product.brand && selectedBrands.includes(product.brand)
+      );
+    }
+
+    // Size filter
+    if (selectedSizes.length > 0) {
+      filtered = filtered.filter(product => 
+        product.size && selectedSizes.includes(product.size)
+      );
+    }
+
+    // Rating filter
+    if (selectedRating > 0) {
+      filtered = filtered.filter(product => 
+        product.rating && product.rating >= selectedRating
+      );
+    }
+
+    // Availability filter
+    if (availabilityFilter !== 'all') {
+      filtered = filtered.filter(product => {
+        switch (availabilityFilter) {
+          case 'in-stock':
+            return product.stock > 10;
+          case 'low-stock':
+            return product.stock > 0 && product.stock <= 10;
+          case 'out-of-stock':
+            return product.stock === 0;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Featured filter
+    if (featuredOnly) {
+      filtered = filtered.filter(product => product.featured === true);
+    }
+
     // Sort products
     switch (sortBy) {
       case 'price-low':
@@ -399,6 +608,13 @@ const ProductListing = () => {
       case 'name':
         filtered.sort((a, b) => a.name.localeCompare(b.name));
         break;
+      case 'rating':
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'newest':
+        // Sort by ID in descending order (assuming higher IDs are newer)
+        filtered.sort((a, b) => parseInt(b.id) - parseInt(a.id));
+        break;
       case 'featured':
       default:
         filtered.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
@@ -406,7 +622,7 @@ const ProductListing = () => {
     }
 
     setFilteredProducts(filtered);
-  }, [products, searchQuery, selectedCategory, priceRange, sortBy]);
+  }, [products, searchQuery, selectedCategory, priceRange, sortBy, selectedColors, selectedBrands, selectedSizes, selectedRating, availabilityFilter, featuredOnly]);
 
   const handleAddToCart = (productId: string) => {
     setCartItemCount(prev => prev + 1);
@@ -428,15 +644,19 @@ const ProductListing = () => {
           className="mb-8"
         >
           <h1 className="text-3xl font-bold mb-2">
-            {selectedCategory === 'all' 
-              ? 'All Products' 
-              : `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Products`
+            {featuredOnly 
+              ? 'Featured Products'
+              : selectedCategory === 'all' 
+                ? 'All Products' 
+                : `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Products`
             }
           </h1>
           <p className="text-muted-foreground">
-            {selectedCategory === 'all' 
-              ? 'Discover our complete collection of amazing products'
-              : `Explore our ${selectedCategory} category collection`
+            {featuredOnly
+              ? 'Discover our hand-picked selection of featured products'
+              : selectedCategory === 'all' 
+                ? 'Discover our complete collection of amazing products'
+                : `Explore our ${selectedCategory} category collection`
             }
           </p>
         </motion.div>
@@ -487,7 +707,7 @@ const ProductListing = () => {
               </div>
 
               {/* Price Range */}
-              <div className="space-y-2">
+              <div className="space-y-2 mb-6">
                 <label className="text-sm font-medium">
                   Price Range: ${priceRange[0]} - ${priceRange[1]}
                 </label>
@@ -498,6 +718,141 @@ const ProductListing = () => {
                   step={10}
                   className="w-full"
                 />
+              </div>
+
+              {/* Color Filter */}
+              <div className="space-y-3 mb-6">
+                <label className="text-sm font-medium">Color</label>
+                <div className="flex flex-wrap gap-2">
+                  {getUniqueColors().map(color => (
+                    <motion.button
+                      key={color}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => toggleColor(color)}
+                      className={`relative w-8 h-8 rounded-full border-2 transition-all duration-200 ${
+                        selectedColors.includes(color)
+                          ? 'border-primary ring-2 ring-primary/20'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      style={{ backgroundColor: colorMap[color] || color }}
+                      title={color}
+                    >
+                      {selectedColors.includes(color) && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <X className="w-3 h-3 text-white drop-shadow-sm" />
+                        </div>
+                      )}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Brand Filter */}
+              <div className="space-y-3 mb-6">
+                <label className="text-sm font-medium">Brand</label>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {getUniqueBrands().map(brand => (
+                    <div key={brand} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`brand-${brand}`}
+                        checked={selectedBrands.includes(brand)}
+                        onCheckedChange={() => toggleBrand(brand)}
+                      />
+                      <label
+                        htmlFor={`brand-${brand}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {brand}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Size Filter */}
+              <div className="space-y-3 mb-6">
+                <label className="text-sm font-medium">Size</label>
+                <div className="flex flex-wrap gap-2">
+                  {getUniqueSizes().map(size => (
+                    <motion.button
+                      key={size}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => toggleSize(size)}
+                      className={`px-3 py-1 text-sm rounded-full border transition-all duration-200 ${
+                        selectedSizes.includes(size)
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background border-border hover:border-primary'
+                      }`}
+                    >
+                      {size}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rating Filter */}
+              <div className="space-y-3 mb-6">
+                <label className="text-sm font-medium">Minimum Rating</label>
+                <div className="flex items-center space-x-1">
+                  {[1, 2, 3, 4, 5].map(rating => (
+                    <motion.button
+                      key={rating}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setSelectedRating(rating)}
+                      className={`p-1 transition-colors duration-200 ${
+                        selectedRating >= rating ? 'text-yellow-500' : 'text-gray-300'
+                      }`}
+                    >
+                      <Star className="w-4 h-4 fill-current" />
+                    </motion.button>
+                  ))}
+                  {selectedRating > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedRating(0)}
+                      className="ml-2 h-6 px-2 text-xs"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                {selectedRating > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedRating}+ stars
+                  </p>
+                )}
+              </div>
+
+              {/* Availability Filter */}
+              <div className="space-y-3 mb-6">
+                <label className="text-sm font-medium">Availability</label>
+                <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Products</SelectItem>
+                    <SelectItem value="in-stock">In Stock</SelectItem>
+                    <SelectItem value="low-stock">Low Stock</SelectItem>
+                    <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Clear All Filters */}
+              <div className="pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={clearAllFilters}
+                  className="w-full"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Clear All Filters
+                </Button>
               </div>
             </div>
           </motion.div>
@@ -524,8 +879,10 @@ const ProductListing = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="featured">Featured</SelectItem>
+                    <SelectItem value="newest">Newest</SelectItem>
                     <SelectItem value="price-low">Price: Low to High</SelectItem>
                     <SelectItem value="price-high">Price: High to Low</SelectItem>
+                    <SelectItem value="rating">Highest Rated</SelectItem>
                     <SelectItem value="name">Name</SelectItem>
                   </SelectContent>
                 </Select>
@@ -583,11 +940,7 @@ const ProductListing = () => {
                 </div>
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    setSearchQuery('');
-                    handleCategoryChange('all');
-                    setPriceRange([0, 1000]);
-                  }}
+                  onClick={clearAllFilters}
                 >
                   Clear Filters
                 </Button>
